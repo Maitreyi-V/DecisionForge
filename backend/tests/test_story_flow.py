@@ -5,11 +5,11 @@ from unittest.mock import patch
 
 os.environ.update(
     {
-        "DATABASE_URL": "sqlite:///:memory:",
-        "API_PREFIX": "/api",
-        "DEBUG": "False",
-        "ALLOWED_ORIGINS": '["http://localhost:3000"]',
-        "OPENAI_API_KEY": "test-key",
+        "DECISIONFORGE_DATABASE_URL": "sqlite:///:memory:",
+        "DECISIONFORGE_API_PREFIX": "/api",
+        "DECISIONFORGE_DEBUG": "False",
+        "DECISIONFORGE_ALLOWED_ORIGINS": '["http://localhost:3000"]',
+        "DECISIONFORGE_OPENAI_API_KEY": "test-key",
     }
 )
 
