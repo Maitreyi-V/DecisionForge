@@ -1,6 +1,6 @@
 from enum import Enum
 from uuid import UUID
-
+from datetime import datetime
 from pydantic import BaseModel, ConfigDict, Field
 
 
@@ -35,3 +35,22 @@ class AttemptStateResponse(BaseModel):
     status: AttemptStatus
     total_score: int
     current_node: PlayableNodeResponse
+
+
+class DecisionFeedbackResponse(BaseModel):
+    sequence_number: int
+    option_id: int
+    option_text: str
+    score_delta: int
+    feedback: str
+
+
+class AttemptResultResponse(BaseModel):
+    attempt_id: UUID
+    simulation_id: int
+    outcome_summary: str
+    total_score: int
+    decisions: list[DecisionFeedbackResponse] = Field(
+        default_factory=list,
+    )
+    completed_at: datetime

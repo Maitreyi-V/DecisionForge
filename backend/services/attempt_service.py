@@ -24,6 +24,14 @@ class AttemptCompletedError(Exception):
 class InvalidDecisionError(Exception):
     pass
 
+class AttemptNotCompletedError(Exception):
+    pass
+
+
+class AttemptResultUnavailableError(Exception):
+    pass
+
+
 def start_attempt(
     db: Session,
     simulation_id: int,
@@ -126,5 +134,40 @@ def submit_decision(
     except Exception:
         db.rollback()
         raise
+
+    return attempt
+
+
+def get_completed_attempt(
+    db: Session,
+    attempt_id: str,
+    session_id: str,
+) -> SimulationAttempt:
+    attempt = (
+        db.query(SimulationAttempt)
+        .filter(
+            SimulationAttempt.attempt_id == attempt_id,
+            SimulationAttempt.session_id == session_id,
+        )
+        .first()
+    )
+
+    if attempt is None:
+        raise AttemptNotFoundError(
+            f"Attempt {attempt_id} was not found"
+        )
+
+    if attempt.status != "completed":
+        raise AttemptNotCompletedError(
+            f"Attempt {attempt_id} is not completed"
+        )
+
+    if (
+        attempt.current_node.outcome_summary is None
+        or attempt.completed_at is None
+    ):
+        raise AttemptResultUnavailableError(
+            f"Attempt {attempt_id} has incomplete result data"
+        )
 
     return attempt
