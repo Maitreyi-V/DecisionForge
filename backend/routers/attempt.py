@@ -12,6 +12,7 @@ from schemas.attempt import (
     SubmitDecisionRequest,
     AttemptResultResponse,
     DecisionFeedbackResponse,
+    DecisionSubmissionResponse,
 )
 from services.attempt_service import (
     AttemptCompletedError,
@@ -102,7 +103,7 @@ def create_attempt(
 
 @router.post(
     "/attempts/{attempt_id}/decisions",
-    response_model=AttemptStateResponse,
+    response_model=DecisionSubmissionResponse,
 )
 def choose_option(
     attempt_id: UUID,
@@ -128,7 +129,18 @@ def choose_option(
             detail=str(exc),
         ) from exc
 
-    return build_attempt_state_response(attempt)
+    latest_decision = attempt.decision_records[-1]
+
+    return DecisionSubmissionResponse(
+        decision_feedback=DecisionFeedbackResponse(
+            sequence_number=latest_decision.sequence_number,
+            option_id=latest_decision.option_id,
+            option_text=latest_decision.option.text,
+            score_delta=latest_decision.score_delta,
+            feedback=latest_decision.option.feedback,
+        ),
+        attempt=build_attempt_state_response(attempt),
+    )
 
 @router.get(
     "/attempts/{attempt_id}/result",

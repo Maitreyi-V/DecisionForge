@@ -45,6 +45,11 @@ class DecisionFeedbackResponse(BaseModel):
     feedback: str
 
 
+class DecisionSubmissionResponse(BaseModel):
+    decision_feedback: DecisionFeedbackResponse
+    attempt: AttemptStateResponse
+
+
 class AttemptResultResponse(BaseModel):
     attempt_id: UUID
     simulation_id: int

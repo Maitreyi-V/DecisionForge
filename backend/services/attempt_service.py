@@ -37,7 +37,14 @@ def start_attempt(
     simulation_id: int,
     session_id: str,
 ) -> SimulationAttempt:
-    simulation = db.get(Simulation, simulation_id)
+    simulation = (
+        db.query(Simulation)
+        .filter(
+            Simulation.id == simulation_id,
+            Simulation.session_id == session_id,
+        )
+        .first()
+    )
 
     if simulation is None:
         raise SimulationNotFoundError(
