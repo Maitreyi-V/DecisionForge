@@ -27,7 +27,7 @@ class DecisionForgeAPI:
             response = self.session.request(
                 method=method,
                 url=f"{self.base_url}{path}",
-                timeout=30,
+                timeout=90,
                 **kwargs,
             )
         except requests.RequestException as exc:
