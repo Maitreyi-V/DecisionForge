@@ -33,16 +33,27 @@ class AttemptStateResponse(BaseModel):
     attempt_id: UUID
     simulation_id: int
     status: AttemptStatus
-    total_score: int
     current_node: PlayableNodeResponse
+
+
+class AlternativePathResponse(BaseModel):
+    option_id: int
+    option_text: str
+    priorities: list[str] = Field(default_factory=list)
+    immediate_feedback: str
+    next_situation: str
+    possible_outcomes: list[str] = Field(default_factory=list)
 
 
 class DecisionFeedbackResponse(BaseModel):
     sequence_number: int
     option_id: int
     option_text: str
-    score_delta: int
+    priorities: list[str] = Field(default_factory=list)
     feedback: str
+    alternatives: list[AlternativePathResponse] = Field(
+        default_factory=list,
+    )
 
 
 class DecisionSubmissionResponse(BaseModel):
@@ -50,11 +61,17 @@ class DecisionSubmissionResponse(BaseModel):
     attempt: AttemptStateResponse
 
 
+class DecisionProfileResponse(BaseModel):
+    style: str
+    top_priorities: list[str] = Field(default_factory=list)
+    summary: str
+
+
 class AttemptResultResponse(BaseModel):
     attempt_id: UUID
     simulation_id: int
     outcome_summary: str
-    total_score: int
+    decision_profile: DecisionProfileResponse
     decisions: list[DecisionFeedbackResponse] = Field(
         default_factory=list,
     )

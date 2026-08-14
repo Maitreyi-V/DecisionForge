@@ -17,11 +17,13 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
 
-from core.simulation_generator import SimulationGenerator
-from core.simulation_models import SimulationLLMResponse
-from db.database import Base, get_db
-from main import app
-import services.generation_job_service as generation_service
+from backend.core.simulation_generator import SimulationGenerator
+from backend.core.scenario_qualifier import ScenarioQualifier
+from backend.core.qualification_models import ScenarioQualificationLLM
+from backend.core.simulation_models import SimulationLLMResponse
+from backend.db.database import Base, get_db
+from backend.main import app
+import backend.services.generation_job_service as generation_service
 
 
 class DecisionFlowTest(unittest.TestCase):
@@ -66,7 +68,10 @@ class DecisionFlowTest(unittest.TestCase):
                             {
                                 "text": "Inspect database metrics",
                                 "target_node_key": "good_end",
-                                "score_delta": 5,
+                                "priorities": [
+                                    "evidence",
+                                    "risk_reduction",
+                                ],
                                 "feedback": (
                                     "You gathered evidence before "
                                     "changing production."
@@ -75,7 +80,7 @@ class DecisionFlowTest(unittest.TestCase):
                             {
                                 "text": "Restart immediately",
                                 "target_node_key": "bad_end",
-                                "score_delta": -5,
+                                "priorities": ["delivery_speed"],
                                 "feedback": (
                                     "You acted before identifying "
                                     "the underlying cause."
@@ -115,14 +120,31 @@ class DecisionFlowTest(unittest.TestCase):
         self.engine.dispose()
 
     def test_complete_decision_flow(self):
-        with patch.object(
-            SimulationGenerator,
-            "generate_structure",
-            return_value=self.structure,
+        with (
+            patch.object(
+                ScenarioQualifier,
+                "require_qualified",
+                return_value=ScenarioQualificationLLM(
+                    competing_priorities=2,
+                    meaningful_stakes=2,
+                    concrete_constraints=2,
+                    role_agency=2,
+                    reason="The scenario contains a meaningful trade-off.",
+                    suggestions=[],
+                ),
+            ),
+            patch.object(
+                SimulationGenerator,
+                "generate_structure",
+                return_value=self.structure,
+            ),
         ):
             with TestClient(app) as client:
                 create_response = client.post(
                     "/api/simulations/generate",
+                    headers={
+                        "X-Generation-Key": "local-development-key",
+                    },
                     json={
                         "scenario": (
                             "A production database is slowing down "
@@ -152,7 +174,7 @@ class DecisionFlowTest(unittest.TestCase):
 
                 selected_option = attempt["current_node"]["options"][0]
 
-                self.assertNotIn("score_delta", selected_option)
+                self.assertNotIn("priorities", selected_option)
                 self.assertNotIn("feedback", selected_option)
 
                 decision_response = client.post(
@@ -166,8 +188,8 @@ class DecisionFlowTest(unittest.TestCase):
 
                 self.assertEqual(decision_response.status_code, 200)
                 self.assertEqual(
-                    decision["decision_feedback"]["score_delta"],
-                    5,
+                    decision["decision_feedback"]["priorities"],
+                    ["evidence", "risk_reduction"],
                 )
                 self.assertEqual(
                     decision["attempt"]["status"],
@@ -183,8 +205,51 @@ class DecisionFlowTest(unittest.TestCase):
                 result = result_response.json()
 
                 self.assertEqual(result_response.status_code, 200)
-                self.assertEqual(result["total_score"], 5)
+                self.assertNotIn("total_score", result)
+                self.assertNotIn("score_percentage", result)
+                self.assertEqual(
+                    result["decision_profile"]["style"],
+                    "Balanced",
+                )
+                self.assertEqual(
+                    result["decision_profile"]["top_priorities"],
+                    ["Evidence gathering", "Risk reduction"],
+                )
                 self.assertEqual(len(result["decisions"]), 1)
+                alternatives = result["decisions"][0]["alternatives"]
+                self.assertEqual(len(alternatives), 1)
+                self.assertEqual(
+                    alternatives[0]["option_text"],
+                    "Restart immediately",
+                )
+                self.assertEqual(
+                    alternatives[0]["possible_outcomes"],
+                    ["Acting without diagnosis caused downtime."],
+                )
+                self.assertEqual(
+                    alternatives[0]["priorities"],
+                    ["delivery_speed"],
+                )
+
+    def test_generation_requires_private_key(self):
+        with TestClient(app) as client:
+            response = client.post(
+                "/api/simulations/generate",
+                json={
+                    "scenario": (
+                        "A risky release creates a conflict between "
+                        "customer safety and an important deadline."
+                    ),
+                    "role": "Backend engineer",
+                    "difficulty": "intermediate",
+                },
+            )
+
+        self.assertEqual(response.status_code, 403)
+        self.assertEqual(
+            response.json()["detail"],
+            "Generation access denied",
+        )
 
 
 if __name__ == "__main__":

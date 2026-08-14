@@ -1,7 +1,7 @@
 from sqlalchemy import Column, DateTime, ForeignKey, Integer, String, Text
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
-from db.database import Base
+from backend.db.database import Base
 
 class SimulationGenerationJob(Base):
     __tablename__ = "simulation_generation_jobs"

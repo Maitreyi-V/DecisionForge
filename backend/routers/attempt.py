@@ -3,18 +3,20 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
-from core.session import get_or_create_session_id
-from db.database import get_db
-from models.attempt import SimulationAttempt
-from schemas.attempt import (
+from backend.core.session import get_or_create_session_id
+from backend.db.database import get_db
+from backend.models.attempt import SimulationAttempt
+from backend.schemas.attempt import (
+    AlternativePathResponse,
     AttemptStateResponse,
+    DecisionProfileResponse,
     PlayableNodeResponse,
     SubmitDecisionRequest,
     AttemptResultResponse,
     DecisionFeedbackResponse,
     DecisionSubmissionResponse,
 )
-from services.attempt_service import (
+from backend.services.attempt_service import (
     AttemptCompletedError,
     AttemptNotFoundError,
     InvalidDecisionError,
@@ -24,6 +26,8 @@ from services.attempt_service import (
     submit_decision,
     AttemptNotCompletedError,
     AttemptResultUnavailableError,
+    build_decision_profile,
+    find_reachable_outcomes,
     get_completed_attempt,
 )
 
@@ -40,7 +44,6 @@ def build_attempt_state_response(
         attempt_id=attempt.attempt_id,
         simulation_id=attempt.simulation_id,
         status=attempt.status,
-        total_score=attempt.total_score,
         current_node=PlayableNodeResponse(
             id=node.id,
             content=node.content,
@@ -52,18 +55,40 @@ def build_attempt_state_response(
 def build_attempt_result_response(
     attempt: SimulationAttempt,
 ) -> AttemptResultResponse:
+    profile_style, top_priorities, profile_summary = (
+        build_decision_profile(attempt)
+    )
+
     return AttemptResultResponse(
         attempt_id=attempt.attempt_id,
         simulation_id=attempt.simulation_id,
         outcome_summary=attempt.current_node.outcome_summary,
-        total_score=attempt.total_score,
+        decision_profile=DecisionProfileResponse(
+            style=profile_style,
+            top_priorities=top_priorities,
+            summary=profile_summary,
+        ),
         decisions=[
             DecisionFeedbackResponse(
                 sequence_number=record.sequence_number,
                 option_id=record.option_id,
                 option_text=record.option.text,
-                score_delta=record.score_delta,
+                priorities=record.option.priorities,
                 feedback=record.option.feedback,
+                alternatives=[
+                    AlternativePathResponse(
+                        option_id=option.id,
+                        option_text=option.text,
+                        priorities=option.priorities,
+                        immediate_feedback=option.feedback,
+                        next_situation=option.target_node.content,
+                        possible_outcomes=find_reachable_outcomes(
+                            option.target_node
+                        ),
+                    )
+                    for option in record.option.source_node.outgoing_options
+                    if option.id != record.option_id
+                ],
             )
             for record in attempt.decision_records
         ],
@@ -136,7 +161,7 @@ def choose_option(
             sequence_number=latest_decision.sequence_number,
             option_id=latest_decision.option_id,
             option_text=latest_decision.option.text,
-            score_delta=latest_decision.score_delta,
+            priorities=latest_decision.option.priorities,
             feedback=latest_decision.option.feedback,
         ),
         attempt=build_attempt_state_response(attempt),

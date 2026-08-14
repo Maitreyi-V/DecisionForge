@@ -2,7 +2,7 @@ import unittest
 
 from pydantic import ValidationError
 
-from schemas.simulation import (
+from backend.schemas.simulation import (
     GenerateSimulationRequest,
     SimulationDifficulty,
 )

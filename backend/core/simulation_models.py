@@ -1,4 +1,17 @@
+from typing import Literal
+
 from pydantic import BaseModel, Field
+
+
+DecisionPriority = Literal[
+    "delivery_speed",
+    "risk_reduction",
+    "evidence",
+    "stakeholder_alignment",
+    "customer_impact",
+    "team_sustainability",
+    "resource_efficiency",
+]
 
 
 class SimulationDecisionLLM(BaseModel):
@@ -8,7 +21,10 @@ class SimulationDecisionLLM(BaseModel):
         max_length=50,
         pattern=r"^[a-z0-9_]+$",
     )
-    score_delta: int = Field(ge=-10, le=10)
+    priorities: list[DecisionPriority] = Field(
+        min_length=1,
+        max_length=3,
+    )
     feedback: str = Field(min_length=10, max_length=500)
 
 
@@ -27,6 +43,7 @@ class SimulationNodeLLM(BaseModel):
     )
     options: list[SimulationDecisionLLM] = Field(
         default_factory=list,
+        max_length=3,
     )
 
 
@@ -34,5 +51,5 @@ class SimulationLLMResponse(BaseModel):
     title: str = Field(min_length=3, max_length=200)
     nodes: list[SimulationNodeLLM] = Field(
         min_length=3,
-        max_length=30,
+        max_length=16,
     )

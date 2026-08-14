@@ -1,18 +1,12 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from core.config import settings
+from backend.core.config import settings
 
-from routers import attempt, simulation,job
-from db.database import create_tables
-
-
-
-create_tables()
-
+from backend.routers import attempt, job, simulation
 app = FastAPI(
     title="DecisionForge API",
     description=(
-        "AI-powered decision simulations with scoring, "
+        "AI-powered decision simulations with trade-off analysis, "
         "feedback, and outcome analysis."
     ),
     version="1.0.0",
@@ -32,11 +26,16 @@ app.include_router(job.router, prefix=settings.API_PREFIX)
 app.include_router(attempt.router, prefix=settings.API_PREFIX)
 app.include_router(simulation.router, prefix=settings.API_PREFIX)
 
+
+@app.get("/health", include_in_schema=False)
+def health_check():
+    return {"status": "ok"}
+
 if __name__ == "__main__":
     import uvicorn
 
     uvicorn.run(
-        "main:app",
+        "backend.main:app",
         host="0.0.0.0",
         port=8001,
         reload=True,

@@ -9,7 +9,7 @@ from sqlalchemy import (
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 
-from db.database import Base
+from backend.db.database import Base
 
 
 class SimulationAttempt(Base):
@@ -41,8 +41,6 @@ class SimulationAttempt(Base):
         nullable=False,
         index=True,
     )
-    total_score = Column(Integer, default=0, nullable=False)
-
     started_at = Column(
         DateTime(timezone=True),
         server_default=func.now(),
@@ -86,7 +84,6 @@ class DecisionRecord(Base):
         nullable=False,
     )
     sequence_number = Column(Integer, nullable=False)
-    score_delta = Column(Integer, nullable=False)
     selected_at = Column(
         DateTime(timezone=True),
         server_default=func.now(),

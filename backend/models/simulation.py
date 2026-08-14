@@ -1,8 +1,17 @@
-from sqlalchemy import Boolean, Column, DateTime, ForeignKey, Integer, String, Text
+from sqlalchemy import (
+    Boolean,
+    Column,
+    DateTime,
+    ForeignKey,
+    Integer,
+    JSON,
+    String,
+    Text,
+)
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 
-from db.database import Base
+from backend.db.database import Base
 
 
 class Simulation(Base):
@@ -59,7 +68,7 @@ class SimulationNode(Base):
         foreign_keys="DecisionOption.target_node_id",
         back_populates="target_node",
     )
-    
+
 
 class DecisionOption(Base):
     __tablename__ = "decision_options"
@@ -78,7 +87,7 @@ class DecisionOption(Base):
         index=True,
     )
     text = Column(Text, nullable=False)
-    score_delta = Column(Integer, default=0, nullable=False)
+    priorities = Column(JSON, default=list, nullable=False)
     feedback = Column(Text, nullable=False)
 
     source_node = relationship(

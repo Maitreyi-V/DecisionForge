@@ -3,10 +3,13 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
-from core.session import get_or_create_session_id
-from db.database import get_db
-from models.job import SimulationGenerationJob
-from schemas.job import SimulationGenerationJobResponse
+from backend.core.session import get_or_create_session_id
+from backend.db.database import get_db
+from backend.models.job import SimulationGenerationJob
+from backend.schemas.job import SimulationGenerationJobResponse
+from backend.services.generation_job_service import (
+    expire_stale_generation_job,
+)
 
 
 router = APIRouter(
@@ -39,4 +42,7 @@ def get_job_status(
             detail="Generation job not found",
         )
 
-    return job
+    return expire_stale_generation_job(
+        db=db,
+        job=job,
+    )
