@@ -16,3 +16,6 @@ dist/
 
 # Personal project instructions
 AGENTS.md
+
+
+.streamlit/secrets.toml
