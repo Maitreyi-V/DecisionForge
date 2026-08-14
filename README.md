@@ -5,6 +5,15 @@ a difficult scenario and their role, then explores a validated decision graph
 with balanced trade-offs, consequence feedback, decision profiling, and
 alternative-path replay.
 
+
+## Live Demo
+
+[Try DecisionForge](https://decisionforge-mv.streamlit.app)
+
+The backend uses a free Render instance, so the first request may take up to
+a minute while the service wakes up.
+
+
 ## What makes it different
 
 - A low-cost qualification gate rejects scenarios with no genuine trade-off.
@@ -87,3 +96,5 @@ backend/.venv/bin/alembic -c backend/alembic.ini check
 The focused suite covers the complete decision flow, generation-route access,
 request validation, and graph corruption cases such as cycles, unreachable
 nodes, and dangling target keys.
+
+
